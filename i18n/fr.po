@@ -1,0 +1,38 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* sale_salesman_restrictions
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: Anis Alim\n"
+"Language-Team: \n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#. module: sale_salesman_restrictions
+#. odoo-python
+#: code:addons/sale_salesman_restrictions/models/sale.py:0
+msgid ""
+"Discount too high on \"%(product)s\": the most you can give is %(max)s%%. "
+"Ask a Sales Manager."
+msgstr ""
+"Remise trop élevée sur « %(product)s » : %(max)s%% maximum."
+
+#. module: sale_salesman_restrictions
+#. odoo-python
+#: code:addons/sale_salesman_restrictions/models/sale.py:0
+msgid ""
+"Discount too high: the most you can give is %(max)s%%. Ask a Sales Manager."
+msgstr ""
+"Remise trop élevée : %(max)s%% maximum."
+
+#. module: sale_salesman_restrictions
+#. odoo-python
+#: code:addons/sale_salesman_restrictions/models/sale.py:0
+msgid "You can't give a fixed amount discount. Ask a Sales Manager."
+msgstr "Vous ne pouvez pas faire de remise en montant fixe."
