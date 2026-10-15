@@ -4,7 +4,7 @@ Author / maintainer: **Anis Alim**. License LGPL-3.
 
 Restricts quotations for every user who is **not** in `sales_team.group_sale_manager`.
 
-Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 2/2 tests green.
+Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 3/3 tests green.
 
 ## Standing instructions (from the client)
 
@@ -14,6 +14,8 @@ Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 2/2 tests
 3. Author / maintainer is **Anis Alim**.
 4. User-facing text: **simple wording**, English in code, French in `i18n/fr.po`.
 5. Log every change in "Change log" with the date.
+6. **Git**: commits carry **no** `Co-Authored-By` line. Remote is
+   `github.com/Anis-Al/sale_salesman_restrictions`, branch `main`.
 
 ## Behaviour
 
@@ -21,16 +23,18 @@ Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 2/2 tests
 |---|---|
 | `sale.order` form | `margin` block (margin + margin %) hidden |
 | `sale.order.line` (list + line form) | `purchase_price`, `margin`, `margin_percent`, `tax_ids` hidden |
+| `account.move` invoice lines (list + line form) | `tax_ids` hidden |
 | `sale.order.line.discount` | capped at **5%** (server-side constraint) |
 | Discount wizard (`action_open_discount_wizard`) | `sol_discount` and `so_discount` capped at **5%**; `amount` (Fixed Amount) hidden and refused |
 
-Managers see and do everything as in standard Odoo.
+Managers see and do everything as in standard Odoo. On invoices, accounting users
+(Administrator, or Readonly / Accountant) also keep `tax_ids`.
 
 ## Files
 
 - `models/sale.py` — line constraint, wizard constraint, wizard `fields_get` filter
-- `views/sale_views.xml` — one inherited view of `sale.order.form`, `groups` attributes only
-- `tests/test_restrictions.py` — salesman vs manager, line + wizard
+- `views/sale_views.xml` — inherited views of `sale.order.form` and `account.view_move_form`, `groups` attributes only
+- `tests/test_restrictions.py` — salesman vs manager, line + wizard + invoice taxes
 - `i18n/fr.po` — French for the 3 error messages
 
 ## Update and test
@@ -49,7 +53,7 @@ log to a file: piping odoo-bin output through `Select-String` in PowerShell lose
 Select-String -Path <scratch>\test.log -Pattern "ERROR|FAIL|tests when"
 ```
 
-Expect `0 failed, 0 error(s) of 2 tests`. On `mconfort` the log also shows errors
+Expect `0 failed, 0 error(s) of 3 tests`. On `mconfort` the log also shows errors
 that are not this module's: `ai.embedding has no table`, missing
 `website_sale_default_order` / `website_snippets`, a Studio view a11y warning.
 
@@ -88,6 +92,13 @@ Code files carry no inline comments by request; everything a comment would say l
 - **Wizard `fields_get` override** drops `amount` from the radio for non-managers;
   the selection labels stay translated because they come from `super()`. The
   constraint refuses `amount` anyway in case it is sent by RPC.
+- **Invoice `tax_ids`**: only `invoice_line_ids` (list + form) is touched. The Journal
+  Items tab (`line_ids`) is already `groups="account.group_account_readonly"` in core.
+  `groups` means "any listed group and none of the `!` ones" (`has_groups`), so "manager or not a salesman" can't be written;
+  instead the field stays for `group_sale_manager`, `group_account_manager` and
+  `group_account_readonly` (implied by Accountant). A billing-only user who is not a
+  salesman would also lose the column — none exist on `mconfort` (2026-10-15).
+  Tax totals at the bottom of the invoice stay visible.
 - **View priority 50** so the xpaths run after `sale_margin`'s inherited view
   (priority 15), which is what adds `margin`, `purchase_price`, `margin_percent`.
 - **Error messages** are short plain wording ("Discount too high… Ask a Sales
@@ -119,3 +130,6 @@ to English. After editing, update with `-u sale_salesman_restrictions --i18n-ove
   messages (English unchanged). Python-error translations are cached per process
   (`odoo/tools/translate.py` `code_translations`), so the running service shows the
   new French only after `Restart-Service odoo-server-19.0` (elevated).
+- 2026-10-15 — invoice lines (`account.move` form): `tax_ids` hidden for non-managers.
+  Updated on `mconfort-loyalty` and `mconfort`, 3/3 tests green.
+- 2026-10-15 — standing instruction 6: no `Co-Authored-By` in commits; remote noted.

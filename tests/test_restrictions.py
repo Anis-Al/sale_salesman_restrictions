@@ -48,3 +48,10 @@ class TestSalesmanRestrictions(TransactionCase):
             return [s[0] for s in Wizard.with_user(user).fields_get(['discount_type'])['discount_type']['selection']]
         self.assertNotIn('amount', types(self.salesman))
         self.assertIn('amount', types(self.manager))
+
+    def test_invoice_taxes_hidden(self):
+        def has_taxes(user):
+            arch = self.env['account.move'].with_user(user).get_views([(False, 'form')])['views']['form']['arch']
+            return 'name="tax_ids"' in arch
+        self.assertFalse(has_taxes(self.salesman))
+        self.assertTrue(has_taxes(self.manager))
