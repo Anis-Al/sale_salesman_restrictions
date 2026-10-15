@@ -42,3 +42,20 @@ msgstr "Vous ne pouvez pas faire de remise en montant fixe."
 #: code:addons/sale_salesman_restrictions/models/sale.py:0
 msgid "You can't increase the quantity of a discount line. Ask a Sales Manager."
 msgstr "Vous ne pouvez pas augmenter la quantité d'une ligne de remise."
+
+#. module: sale_salesman_restrictions
+#: model:ir.model.fields,field_description:sale_salesman_restrictions.field_res_company__salesman_max_discount
+#: model:ir.model.fields,field_description:sale_salesman_restrictions.field_res_config_settings__salesman_max_discount
+#: model_terms:ir.ui.view,arch_db:sale_salesman_restrictions.res_config_settings_view_form
+msgid "Salesman Max Discount"
+msgstr "Remise maximum des vendeurs"
+
+#. module: sale_salesman_restrictions
+#: model_terms:ir.ui.view,arch_db:sale_salesman_restrictions.res_config_settings_view_form
+msgid "Highest discount a salesman can give without a Sales Manager"
+msgstr "Remise la plus haute qu'un vendeur peut donner"
+
+#. module: sale_salesman_restrictions
+#: model:ir.model.constraint,message:sale_salesman_restrictions.constraint_res_company_salesman_max_discount_range
+msgid "The salesman max discount must be between 0 and 100%."
+msgstr "La remise maximum des vendeurs doit être entre 0 et 100 %."

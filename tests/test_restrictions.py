@@ -32,6 +32,17 @@ class TestSalesmanRestrictions(TransactionCase):
             line.discount = 5.5
         self._order(self.manager).order_line.discount = 50.0
 
+    def test_configurable_cap(self):
+        self.env.company.salesman_max_discount = 10.0
+        line = self._order(self.salesman).order_line
+        line.discount = 10.0
+        with self.assertRaises(ValidationError):
+            line.discount = 10.5
+        Wizard = self.env['sale.order.discount'].with_user(self.salesman)
+        Wizard.create({'sale_order_id': line.order_id.id, 'discount_type': 'sol_discount', 'discount_percentage': 0.1})
+        with self.assertRaises(ValidationError):
+            Wizard.create({'sale_order_id': line.order_id.id, 'discount_type': 'sol_discount', 'discount_percentage': 0.11})
+
     def test_wizard(self):
         order = self._order(self.salesman)
         Wizard = self.env['sale.order.discount'].with_user(self.salesman)

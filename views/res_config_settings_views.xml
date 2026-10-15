@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.salesman.restrictions</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <setting id="discount_sale_order_lines" position="after">
+                <setting id="salesman_max_discount" string="Salesman Max Discount" help="Highest discount a salesman can give without a Sales Manager" invisible="not group_discount_per_so_line">
+                    <div class="mt8">
+                        <field name="salesman_max_discount" class="text-center" style="width: 4rem;"/>
+                        <span>%</span>
+                    </div>
+                </setting>
+            </setting>
+        </field>
+    </record>
+
+</odoo>

@@ -4,7 +4,7 @@ Author / maintainer: **Anis Alim**. License LGPL-3.
 
 Restricts quotations for every user who is **not** in `sales_team.group_sale_manager`.
 
-Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 4/4 tests green.
+Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 5/5 tests green.
 
 ## Standing instructions (from the client)
 
@@ -24,19 +24,21 @@ Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 4/4 tests
 | `sale.order` form | `margin` block (margin + margin %) hidden |
 | `sale.order.line` (list + line form) | `purchase_price`, `margin`, `margin_percent`, `tax_ids` hidden |
 | `account.move` invoice lines (list + line form) | `tax_ids` hidden |
-| `sale.order.line.discount` | capped at **5%** (server-side constraint) |
-| Discount wizard (`action_open_discount_wizard`) | `sol_discount` and `so_discount` capped at **5%**; `amount` (Fixed Amount) hidden and refused |
+| `sale.order.line.discount` | capped at the **Salesman Max Discount** (default 5%, server-side constraint) |
+| Discount wizard (`action_open_discount_wizard`) | `sol_discount` and `so_discount` capped at the same max; `amount` (Fixed Amount) hidden and refused |
 | Global discount lines (company discount product) | quantity can't be **increased** (server-side) |
 
-Managers see and do everything as in standard Odoo. On invoices, accounting users
+The max is set per company in **Sales > Configuration > Settings > Pricing > Salesman Max
+Discount** (shown only when "Discounts" is on). Managers see and do everything as in standard Odoo. On invoices, accounting users
 (Administrator, or Readonly / Accountant) also keep `tax_ids`.
 
 ## Files
 
-- `models/sale.py` — line constraint, wizard constraint, wizard `fields_get` filter
+- `models/sale.py` — company setting, line constraint, wizard constraint, wizard `fields_get` filter
 - `views/sale_views.xml` — inherited views of `sale.order.form` and `account.view_move_form`, `groups` attributes only
-- `tests/test_restrictions.py` — salesman vs manager, line + wizard + invoice taxes
-- `i18n/fr.po` — French for the 3 error messages
+- `views/res_config_settings_views.xml` — the max discount setting in Sales settings
+- `tests/test_restrictions.py` — salesman vs manager, line + wizard + invoice taxes, configurable max
+- `i18n/fr.po` — French for the error messages and the setting
 
 ## Update and test
 
@@ -54,7 +56,7 @@ log to a file: piping odoo-bin output through `Select-String` in PowerShell lose
 Select-String -Path <scratch>\test.log -Pattern "ERROR|FAIL|tests when"
 ```
 
-Expect `0 failed, 0 error(s) of 4 tests`. On `mconfort` the log also shows errors
+Expect `0 failed, 0 error(s) of 5 tests`. On `mconfort` the log also shows errors
 that are not this module's: `ai.embedding has no table`, missing
 `website_sale_default_order` / `website_snippets`, a Studio view a11y warning.
 
@@ -76,6 +78,10 @@ Code files carry no inline comments by request; everything a comment would say l
   `AccessError` for salesmen in computes (totals, taxes, margin) and in reports.
   Hidden fields still exist server-side; this is a UI restriction, not data security
   (RPC can still read them).
+- **`salesman_max_discount`** is a `res.company` field (default 5.0, SQL check 0–100), exposed in
+  `res.config.settings` as a `related` field, so each company has its own max. Existing companies got
+  5.0 on install, so behaviour did not change. Line check reads the line's company, wizard check reads
+  the order's company. "5%" below means "the configured max".
 - **`_get_salesman_max_discount()`** — the cap is `max(5%, what the system itself put there)`:
   - loyalty reward lines (`reward_id`, free product = 100% discount) → 100%
   - combo item lines copy their parent line's discount → parent's discount allowed
@@ -146,3 +152,12 @@ to English. After editing, update with `-u sale_salesman_restrictions --i18n-ove
   French message. Updated on `mconfort-loyalty` and `mconfort`, 4/4 tests green.
 - 2026-10-15 — discount column on sale lines was hidden for salesmen by
   `account_hide_cancel_invoicing` (not this module); fixed there (`3651883`).
+- 2026-10-15 — 19.0.1.1.0: the 5% cap is now a per-company setting (Sales settings > Pricing,
+  default 5). New test, French for the setting. Updated on `mconfort-loyalty` and `mconfort`, 5/5
+  tests green; both companies kept 5.
+- 2026-10-15 — Settings page threw `"res.config.settings"."salesman_max_discount" field is
+  undefined`: the running service had the old `models/sale.py` loaded. Needs
+  `Restart-Service odoo-server-19.0` (elevated) after any change that adds Python fields.
+- 2026-10-15 — Settings: `%` shown after the max discount input (same layout as core
+  `quotation_validity_days`). French help shortened to "Remise la plus haute qu'un vendeur peut
+  donner" (English unchanged). Updated on both DBs with `--i18n-overwrite`, 5/5 tests green.
