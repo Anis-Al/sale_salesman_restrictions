@@ -36,3 +36,9 @@ msgstr ""
 #: code:addons/sale_salesman_restrictions/models/sale.py:0
 msgid "You can't give a fixed amount discount. Ask a Sales Manager."
 msgstr "Vous ne pouvez pas faire de remise en montant fixe."
+
+#. module: sale_salesman_restrictions
+#. odoo-python
+#: code:addons/sale_salesman_restrictions/models/sale.py:0
+msgid "You can't increase the quantity of a discount line. Ask a Sales Manager."
+msgstr "Vous ne pouvez pas augmenter la quantité d'une ligne de remise."

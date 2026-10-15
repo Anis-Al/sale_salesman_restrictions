@@ -48,6 +48,22 @@ class SaleOrderLine(models.Model):
                     max=f"{round(allowed, digits):g}", product=line.product_id.display_name or line.name,
                 ))
 
+    def write(self, vals):
+        if 'product_uom_qty' in vals and _is_restricted(self.env):
+            for line in self:
+                if (
+                    line.product_id
+                    and line.product_id == line.company_id.sale_discount_product_id
+                    and float_compare(
+                        vals['product_uom_qty'], line.product_uom_qty,
+                        precision_rounding=line.product_uom_id.rounding,
+                    ) > 0
+                ):
+                    raise ValidationError(self.env._(
+                        "You can't increase the quantity of a discount line. Ask a Sales Manager."
+                    ))
+        return super().write(vals)
+
 
 class SaleOrderDiscount(models.TransientModel):
     _inherit = 'sale.order.discount'

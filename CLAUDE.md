@@ -4,7 +4,7 @@ Author / maintainer: **Anis Alim**. License LGPL-3.
 
 Restricts quotations for every user who is **not** in `sales_team.group_sale_manager`.
 
-Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 3/3 tests green.
+Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 4/4 tests green.
 
 ## Standing instructions (from the client)
 
@@ -26,6 +26,7 @@ Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 3/3 tests
 | `account.move` invoice lines (list + line form) | `tax_ids` hidden |
 | `sale.order.line.discount` | capped at **5%** (server-side constraint) |
 | Discount wizard (`action_open_discount_wizard`) | `sol_discount` and `so_discount` capped at **5%**; `amount` (Fixed Amount) hidden and refused |
+| Global discount lines (company discount product) | quantity can't be **increased** (server-side) |
 
 Managers see and do everything as in standard Odoo. On invoices, accounting users
 (Administrator, or Readonly / Accountant) also keep `tax_ids`.
@@ -53,7 +54,7 @@ log to a file: piping odoo-bin output through `Select-String` in PowerShell lose
 Select-String -Path <scratch>\test.log -Pattern "ERROR|FAIL|tests when"
 ```
 
-Expect `0 failed, 0 error(s) of 3 tests`. On `mconfort` the log also shows errors
+Expect `0 failed, 0 error(s) of 4 tests`. On `mconfort` the log also shows errors
 that are not this module's: `ai.embedding has no table`, missing
 `website_sale_default_order` / `website_snippets`, a Studio view a11y warning.
 
@@ -92,6 +93,11 @@ Code files carry no inline comments by request; everything a comment would say l
 - **Wizard `fields_get` override** drops `amount` from the radio for non-managers;
   the selection labels stay translated because they come from `super()`. The
   constraint refuses `amount` anyway in case it is sent by RPC.
+- **Global discount line qty** (`sale.order.line.write`): the `so_discount` wizard adds lines
+  with `company.sale_discount_product_id` and a negative `price_unit`; raising their qty would
+  multiply the discount past 5%. For restricted users, `write` refuses a `product_uom_qty`
+  greater than the current one on those lines. Same qty or lower is fine (lower = less
+  discount). `create` is untouched because the wizard creates the lines as the salesman.
 - **Invoice `tax_ids`**: only `invoice_line_ids` (list + form) is touched. The Journal
   Items tab (`line_ids`) is already `groups="account.group_account_readonly"` in core.
   `groups` means "any listed group and none of the `!` ones" (`has_groups`), so "manager or not a salesman" can't be written;
@@ -114,6 +120,9 @@ to English. After editing, update with `-u sale_salesman_restrictions --i18n-ove
 ## Not done
 
 - Pivot/graph measures for margin on `sale.order` are untouched.
+- Global discount lines: `price_unit` is not locked, and a salesman can still add the
+  discount product as a normal line by hand. The qty field is not made readonly in the view
+  (the error shows on save).
 
 ## Change log
 
@@ -133,3 +142,7 @@ to English. After editing, update with `-u sale_salesman_restrictions --i18n-ove
 - 2026-10-15 — invoice lines (`account.move` form): `tax_ids` hidden for non-managers.
   Updated on `mconfort-loyalty` and `mconfort`, 3/3 tests green.
 - 2026-10-15 — standing instruction 6: no `Co-Authored-By` in commits; remote noted.
+- 2026-10-15 — global discount lines: salesmen can't increase their quantity. New test,
+  French message. Updated on `mconfort-loyalty` and `mconfort`, 4/4 tests green.
+- 2026-10-15 — discount column on sale lines was hidden for salesmen by
+  `account_hide_cancel_invoicing` (not this module); fixed there (`3651883`).

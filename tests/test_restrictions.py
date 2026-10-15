@@ -14,6 +14,9 @@ class TestSalesmanRestrictions(TransactionCase):
         cls.partner = cls.env['res.partner'].create({'name': "Client"})
         cls.product = cls.env['product.product'].create({'name': "Chair", 'list_price': 100.0})
         cls.pricelist = cls.env['product.pricelist'].create({'name': "No rules"})
+        cls.env.company.sale_discount_product_id = cls.env['product.product'].create({
+            'name': "Discount", 'type': 'service',
+        })
 
     def _order(self, user):
         return self.env['sale.order'].with_user(user).create({
@@ -48,6 +51,19 @@ class TestSalesmanRestrictions(TransactionCase):
             return [s[0] for s in Wizard.with_user(user).fields_get(['discount_type'])['discount_type']['selection']]
         self.assertNotIn('amount', types(self.salesman))
         self.assertIn('amount', types(self.manager))
+
+    def test_global_discount_line_qty(self):
+        order = self._order(self.salesman)
+        self.env['sale.order.discount'].with_user(self.salesman).create({
+            'sale_order_id': order.id, 'discount_type': 'so_discount', 'discount_percentage': 0.05,
+        }).action_apply_discount()
+        line = order.order_line.filtered(lambda l: l.product_id == self.env.company.sale_discount_product_id)
+        self.assertEqual(len(line), 1)
+        qty = line.product_uom_qty
+        with self.assertRaises(ValidationError):
+            line.with_user(self.salesman).product_uom_qty = qty + 1
+        line.with_user(self.salesman).product_uom_qty = qty
+        line.with_user(self.manager).product_uom_qty = qty + 1
 
     def test_invoice_taxes_hidden(self):
         def has_taxes(user):
