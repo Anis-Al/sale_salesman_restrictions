@@ -4,7 +4,7 @@ Author / maintainer: **Anis Alim**. License LGPL-3.
 
 Restricts quotations for every user who is **not** in `sales_team.group_sale_manager`.
 
-Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 5/5 tests green.
+Status 2026-11-01: **installed on `mconfort`** and `mconfort-loyalty`, 6/6 tests green.
 
 ## Standing instructions (from the client)
 
@@ -27,6 +27,8 @@ Status 2026-10-15: **installed on `mconfort`** and `mconfort-loyalty`, 5/5 tests
 | `sale.order.line.discount` | capped at the **Salesman Max Discount** (default 5%, server-side constraint) |
 | Discount wizard (`action_open_discount_wizard`) | `sol_discount` and `so_discount` capped at the same max; `amount` (Fixed Amount) hidden and refused |
 | Global discount lines (company discount product) | quantity can't be **increased** (server-side) |
+| Journal items > Actions > **Unreconcile** (`account.action_account_unreconcile`) | action hidden |
+| Invoice / bill form > payment info popup (`Unreconcile` / *Annuler le lettrage* button) | button hidden |
 
 The max is set per company in **Sales > Configuration > Settings > Pricing > Salesman Max
 Discount** (shown only when "Discounts" is on). Managers see and do everything as in standard Odoo. On invoices, accounting users
@@ -38,6 +40,7 @@ Discount** (shown only when "Discounts" is on). Managers see and do everything a
 - `views/sale_views.xml` — inherited views of `sale.order.form` and `account.view_move_form`, `groups` attributes only
 - `views/res_config_settings_views.xml` — the max discount setting in Sales settings
 - `tests/test_restrictions.py` — salesman vs manager, line + wizard + invoice taxes, configurable max
+- `static/src/account_payment_unreconcile.{js,xml}` — hides the Unreconcile button in the payment popup (invoice/bill form)
 - `i18n/fr.po` — French for the error messages and the setting
 
 ## Update and test
@@ -56,7 +59,7 @@ log to a file: piping odoo-bin output through `Select-String` in PowerShell lose
 Select-String -Path <scratch>\test.log -Pattern "ERROR|FAIL|tests when"
 ```
 
-Expect `0 failed, 0 error(s) of 5 tests`. On `mconfort` the log also shows errors
+Expect `0 failed, 0 error(s) of 6 tests`. On `mconfort` the log also shows errors
 that are not this module's: `ai.embedding has no table`, missing
 `website_sale_default_order` / `website_snippets`, a Studio view a11y warning.
 
@@ -111,6 +114,13 @@ Code files carry no inline comments by request; everything a comment would say l
   `group_account_readonly` (implied by Accountant). A billing-only user who is not a
   salesman would also lose the column — none exist on `mconfort` (2026-10-15).
   Tax totals at the bottom of the invoice stay visible.
+- **Unreconcile action**: `views/sale_views.xml` overrides `group_ids` of the core server action
+  `account.action_account_unreconcile` (bound to `account.move.line`) from `account.group_account_user`
+  to `sales_team.group_sale_manager` only. "Everyone but Sales Managers" can't be written as a group
+  list, so this means accountants who are not Sales Managers lose it too (asked for 2026-11-01). It
+  only hides the Actions-menu entry; the underlying method is not blocked server-side. A later
+  `-u account` resets `group_ids` to Accountant until this module is updated again.
+- **Payment popup Unreconcile button**: the button lives in the OWL template `account.AccountPaymentPopOver`, not in a view, so `groups` on view nodes can't reach it. `static/src/account_payment_unreconcile.js` patches `AccountPaymentField` to read `user.hasGroup('sales_team.group_sale_manager')` once (`onWillStart`) and pass `canUnreconcile` to the popover; the `.xml` extension adds it to the button's `t-if`. Only Sales Managers see it (same trade-off as the journal-items action). UI only: `js_remove_outstanding_partial` is not blocked server-side. After `-u` the DB has the new `web.assets_web` bundle, but the running service can keep serving the old one: do `Restart-Service odoo-server-19.0` (elevated) and a hard reload (Ctrl+Shift+R) before testing. Test with a non-manager (`test` / `Soultoine`); `ANIS` and `M'CONFORT` are Sales Managers and keep the button.
 - **View priority 50** so the xpaths run after `sale_margin`'s inherited view
   (priority 15), which is what adds `margin`, `purchase_price`, `margin_percent`.
 - **Error messages** are short plain wording ("Discount too high… Ask a Sales
@@ -161,3 +171,8 @@ to English. After editing, update with `-u sale_salesman_restrictions --i18n-ove
 - 2026-10-15 — Settings: `%` shown after the max discount input (same layout as core
   `quotation_validity_days`). French help shortened to "Remise la plus haute qu'un vendeur peut
   donner" (English unchanged). Updated on both DBs with `--i18n-overwrite`, 5/5 tests green.
+- 2026-11-01 — Unreconcile action hidden for non-Sales-Managers. New test, 6/6 green. Updated on
+  `mconfort` (`-u`). `mconfort-loyalty` showed the module `uninstalled`, so it was `-i` installed there.
+- 2026-11-01 — Unreconcile button in the invoice/bill payment info popup hidden for non-Sales-Managers
+  (JS patch + template extension). Updated on `mconfort-loyalty` and `mconfort`, 6/6 tests green. Needs a
+  service restart + hard reload to show (see Code comments). Commit amended to include this note.

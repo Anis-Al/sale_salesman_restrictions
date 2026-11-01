@@ -82,3 +82,12 @@ class TestSalesmanRestrictions(TransactionCase):
             return 'name="tax_ids"' in arch
         self.assertFalse(has_taxes(self.salesman))
         self.assertTrue(has_taxes(self.manager))
+
+    def test_unreconcile_action_hidden(self):
+        action = self.env.ref('account.action_account_unreconcile')
+
+        def sees_unreconcile(user):
+            bindings = self.env['ir.actions.actions'].with_user(user).get_bindings('account.move.line')
+            return action.id in [a['id'] for a in bindings.get('action', [])]
+        self.assertFalse(sees_unreconcile(self.salesman))
+        self.assertTrue(sees_unreconcile(self.manager))

@@ -46,4 +46,8 @@
         </field>
     </record>
 
+    <record id="account.action_account_unreconcile" model="ir.actions.server">
+        <field name="group_ids" eval="[(6, 0, [ref('sales_team.group_sale_manager')])]"/>
+    </record>
+
 </odoo>
